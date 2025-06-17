@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}用户管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people"></i> 用户管理</h2>
+    <a href="{% url 'register' %}" class="btn btn-primary">
+        <i class="bi bi-person-plus"></i> 创建用户
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-person-lines-fill"></i> 系统用户列表</h5>
+    </div>
+    <div class="card-body">
+        {% if users %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>角色</th>
+                            <th>注册时间</th>
+                            <th>最后登录</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <strong>{{ user.username }}</strong>
+                                {% if user == request.user %}
+                                    <span class="badge bg-primary ms-2">当前用户</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.email %}
+                                    <a href="mailto:{{ user.email }}" class="text-decoration-none">
+                                        {{ user.email }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_super_admin %}
+                                    <span class="badge bg-danger">超级管理员</span>
+                                {% elif user.is_staff %}
+                                    <span class="badge bg-warning">管理员</span>
+                                {% else %}
+                                    <span class="badge bg-info">普通用户</span>
+                                {% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ user.date_joined|date:"Y-m-d H:i" }}</small></td>
+                            <td>
+                                {% if user.last_login %}
+                                    <small class="text-muted">{{ user.last_login|date:"Y-m-d H:i" }}</small>
+                                {% else %}
+                                    <span class="text-muted">从未登录</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_active %}
+                                    <span class="badge bg-success">活跃</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">禁用</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-people fs-1 text-muted"></i>
+                <p class="text-muted mt-2">暂无用户</p>
+                <a href="{% url 'register' %}" class="btn btn-primary">创建第一个用户</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 用户统计 -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ users.count }}</h4>
+                        <p class="mb-0">总用户数</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ users|length }}</h4>
+                        <p class="mb-0">活跃用户</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-person-check fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ users|length }}</h4>
+                        <p class="mb-0">超级管理员</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-shield-star fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ users|length }}</h4>
+                        <p class="mb-0">普通用户</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-person fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户管理说明 -->
+<div class="card mt-4">
+    <div class="card-header bg-light">
+        <h6 class="mb-0"><i class="bi bi-info-circle"></i> 用户管理说明</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6><i class="bi bi-shield-star"></i> 超级管理员</h6>
+                <p class="small text-muted">拥有系统最高权限，可以创建用户、管理所有功能</p>
+            </div>
+            <div class="col-md-4">
+                <h6><i class="bi bi-person-gear"></i> 管理员</h6>
+                <p class="small text-muted">可以管理团队、密码，但无法创建新用户</p>
+            </div>
+            <div class="col-md-4">
+                <h6><i class="bi bi-person"></i> 普通用户</h6>
+                <p class="small text-muted">可以创建团队、管理自己的密码</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}团队详情 - {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people"></i> {{ team.name }}</h2>
+    <div>
+        {% if is_admin %}
+        <a href="{% url 'add_member' team.id %}" class="btn btn-success me-2">
+            <i class="bi bi-person-plus"></i> 添加成员
+        </a>
+        {% endif %}
+        <a href="{% url 'team_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回团队列表
+        </a>
+    </div>
+</div>
+
+<!-- 团队信息 -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> 团队信息</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>团队名称：</strong>{{ team.name }}</p>
+                        <p><strong>创建者：</strong>
+                            <span class="badge bg-primary">{{ team.owner.username }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>创建时间：</strong>{{ team.created_at|date:"Y-m-d H:i" }}</p>
+                        <p><strong>您的角色：</strong>
+                            {% if user == team.owner %}
+                                <span class="badge bg-primary">所有者</span>
+                            {% elif user_role == 'admin' %}
+                                <span class="badge bg-warning">管理员</span>
+                            {% elif user_role == 'member' %}
+                                <span class="badge bg-info">成员</span>
+                            {% else %}
+                                <span class="badge bg-secondary">查看者</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% if team.description %}
+                <div class="mt-3">
+                    <p><strong>团队描述：</strong></p>
+                    <div class="bg-light p-3 rounded">
+                        {{ team.description|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-shield-lock"></i> 团队统计</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h3 class="text-primary">{{ team.members.count }}</h3>
+                    <p class="text-muted">团队成员</p>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <h3 class="text-success">{{ team_passwords.count }}</h3>
+                    <p class="text-muted">团队密码</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 团队成员 -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-person-lines-fill"></i> 团队成员</h5>
+    </div>
+    <div class="card-body">
+        {% if memberships %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>角色</th>
+                            <th>加入时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in memberships %}
+                        <tr>
+                            <td>
+                                <strong>{{ membership.user.username }}</strong>
+                                {% if membership.user == team.owner %}
+                                    <span class="badge bg-primary ms-2">所有者</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if membership.user == team.owner %}
+                                    <span class="badge bg-primary">所有者</span>
+                                {% elif membership.role == 'admin' %}
+                                    <span class="badge bg-warning">管理员</span>
+                                {% elif membership.role == 'member' %}
+                                    <span class="badge bg-info">成员</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">查看者</span>
+                                {% endif %}
+                            </td>
+                            <td><small class="text-muted">{{ membership.joined_at|date:"Y-m-d H:i" }}</small></td>
+                            <td>
+                                {% if is_admin and membership.user != team.owner %}
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="removeMember('{{ membership.user.username }}', {{ membership.user.id }})">
+                                    <i class="bi bi-person-x"></i> 移除
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-people fs-1 text-muted"></i>
+                <p class="text-muted mt-2">暂无团队成员</p>
+                {% if is_admin %}
+                <a href="{% url 'add_member' team.id %}" class="btn btn-success">添加第一个成员</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 团队密码 -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-shield-lock"></i> 团队密码</h5>
+    </div>
+    <div class="card-body">
+        {% if team_passwords %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>标题</th>
+                            <th>网站</th>
+                            <th>用户名</th>
+                            <th>创建者</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for password in team_passwords %}
+                        <tr>
+                            <td><strong>{{ password.title }}</strong></td>
+                            <td>
+                                {% if password.website %}
+                                    <a href="{{ password.website }}" target="_blank" class="text-decoration-none">
+                                        <i class="bi bi-link-45deg"></i> {{ password.website|truncatechars:30 }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ password.username }}</code></td>
+                            <td>
+                                <span class="badge {% if password.owner == user %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ password.owner.username }}
+                                </span>
+                            </td>
+                            <td><small class="text-muted">{{ password.updated_at|date:"Y-m-d H:i" }}</small></td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'view_password' password.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> 查看
+                                    </a>
+                                    {% if password.owner == user or is_admin %}
+                                    <form method="post" action="{% url 'delete_password' password.id %}" class="d-inline" 
+                                          onsubmit="return confirm('确定删除这个团队密码条目吗？')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-shield-lock fs-1 text-muted"></i>
+                <p class="text-muted mt-2">暂无团队密码</p>
+                <p class="text-muted small">团队成员可以添加密码进行共享</p>
+                <a href="{% url 'add_password' %}" class="btn btn-primary">添加团队密码</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function removeMember(username, userId) {
+    if (confirm(`确定要移除成员 "${username}" 吗？`)) {
+        // 这里可以添加AJAX请求来移除成员
+        // 或者跳转到移除成员的页面
+        alert('移除成员功能需要后端实现');
+    }
+}
+</script>
+{% endblock %} 

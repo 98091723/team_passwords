@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}创建团队{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">
+                    <i class="bi bi-plus-circle"></i> 创建团队
+                </h3>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="name" class="form-label">团队名称 *</label>
+                        <input type="text" class="form-control" id="name" name="name" required 
+                               placeholder="例如：开发团队、运维团队">
+                        <div class="form-text">团队名称将用于标识和区分不同的团队</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">团队描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="可选：描述团队的主要职责、工作范围等"></textarea>
+                        <div class="form-text">帮助团队成员了解团队的目标和职责</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'team_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> 创建团队
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 团队创建说明 -->
+        <div class="card mt-3">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> 团队创建说明</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="bi bi-check-circle text-success"></i> 创建团队后，您将成为团队的所有者</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 团队所有者可以添加成员、管理权限</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 团队成员可以共享密码，提高协作效率</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 团队密码只有团队成员才能查看</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

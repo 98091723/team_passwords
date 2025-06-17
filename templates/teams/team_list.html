@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}团队管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people"></i> 团队管理</h2>
+    <a href="{% url 'create_team' %}" class="btn btn-primary">
+        <i class="bi bi-plus"></i> 创建团队
+    </a>
+</div>
+
+<!-- 我拥有的团队 -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5><i class="bi bi-person-badge"></i> 我拥有的团队</h5>
+    </div>
+    <div class="card-body">
+        {% if owned_teams %}
+            <div class="row">
+                {% for team in owned_teams %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="bi bi-people"></i> {{ team.name }}
+                                <span class="badge bg-primary">所有者</span>
+                            </h6>
+                            <p class="card-text text-muted small">
+                                {{ team.description|default:"暂无描述" }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> {{ team.created_at|date:"Y-m-d" }}
+                                </small>
+                                <a href="{% url 'team_detail' team.id %}" class="btn btn-sm btn-outline-primary">
+                                    管理
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-people fs-1 text-muted"></i>
+                <p class="text-muted mt-2">您还没有创建任何团队</p>
+                <a href="{% url 'create_team' %}" class="btn btn-primary">创建第一个团队</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 我参与的团队 -->
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5><i class="bi bi-person-check"></i> 我参与的团队</h5>
+    </div>
+    <div class="card-body">
+        {% if member_teams %}
+            <div class="row">
+                {% for team in member_teams %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="bi bi-people"></i> {{ team.name }}
+                                {% for membership in team.teammembership_set.all %}
+                                    {% if membership.user == user %}
+                                        {% if membership.role == 'admin' %}
+                                            <span class="badge bg-warning">管理员</span>
+                                        {% elif membership.role == 'member' %}
+                                            <span class="badge bg-info">成员</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">查看者</span>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </h6>
+                            <p class="card-text text-muted small">
+                                {{ team.description|default:"暂无描述" }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> {{ team.owner.username }}
+                                </small>
+                                <a href="{% url 'team_detail' team.id %}" class="btn btn-sm btn-outline-success">
+                                    查看
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-person-check fs-1 text-muted"></i>
+                <p class="text-muted mt-2">您还没有加入任何团队</p>
+                <p class="text-muted small">请联系团队管理员邀请您加入团队</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 团队功能说明 -->
+<div class="card mt-4">
+    <div class="card-header bg-light">
+        <h6 class="mb-0"><i class="bi bi-info-circle"></i> 团队功能说明</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6><i class="bi bi-shield-lock"></i> 团队密码</h6>
+                <p class="small text-muted">团队成员可以共享密码，提高协作效率</p>
+            </div>
+            <div class="col-md-4">
+                <h6><i class="bi bi-person-gear"></i> 角色管理</h6>
+                <p class="small text-muted">管理员、成员、查看者三种角色，权限分明</p>
+            </div>
+            <div class="col-md-4">
+                <h6><i class="bi bi-eye"></i> 权限控制</h6>
+                <p class="small text-muted">只有团队成员才能查看团队密码</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

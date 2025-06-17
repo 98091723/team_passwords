@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}密码管理{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-key"></i> 密码管理</h2>
+    <div>
+        <a href="{% url 'team_list' %}" class="btn btn-outline-info me-2">
+            <i class="bi bi-people"></i> 团队管理
+        </a>
+        <a href="{% url 'add_password' %}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> 添加密码
+        </a>
+    </div>
+</div>
+
+<!-- 超级管理员标识 -->
+{% if is_super_admin %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="bi bi-shield-star"></i> <strong>超级管理员模式</strong> - 您可以查看和管理所有用户的密码
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- 统计信息 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ personal_passwords.count }}</h4>
+                        <p class="mb-0">个人密码</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-person fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ team_passwords.count }}</h4>
+                        <p class="mb-0">团队密码</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ teams.count }}</h4>
+                        <p class="mb-0">我的团队</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-diagram-3 fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ personal_passwords.count|add:team_passwords.count }}</h4>
+                        <p class="mb-0">总密码数</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-shield-lock fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 个人密码 -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5><i class="bi bi-person"></i> 个人密码</h5>
+    </div>
+    <div class="card-body">
+        {% if personal_passwords %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>标题</th>
+                            <th>网站</th>
+                            <th>用户名</th>
+                            <th>所有者</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for password in personal_passwords %}
+                        <tr>
+                            <td><strong>{{ password.title }}</strong></td>
+                            <td>
+                                {% if password.website %}
+                                    <a href="{{ password.website }}" target="_blank" class="text-decoration-none">
+                                        <i class="bi bi-link-45deg"></i> {{ password.website|truncatechars:30 }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ password.username }}</code></td>
+                            <td>
+                                <span class="badge {% if password.owner == user %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ password.owner.username }}
+                                </span>
+                            </td>
+                            <td><small class="text-muted">{{ password.updated_at|date:"Y-m-d H:i" }}</small></td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'view_password' password.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> 查看
+                                    </a>
+                                    {% if password.owner == user or is_super_admin %}
+                                    <a href="{% url 'edit_password' password.id %}" class="btn btn-sm btn-outline-warning">
+                                        <i class="bi bi-pencil"></i> 编辑
+                                    </a>
+                                    <form method="post" action="{% url 'delete_password' password.id %}" class="d-inline" 
+                                          onsubmit="return confirm('确定删除这个密码条目吗？')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+                <p class="text-muted mt-2">暂无个人密码</p>
+                <a href="{% url 'add_password' %}" class="btn btn-primary">添加第一个密码</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 团队密码 -->
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5><i class="bi bi-people"></i> 团队密码</h5>
+    </div>
+    <div class="card-body">
+        {% if team_passwords %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>标题</th>
+                            <th>网站</th>
+                            <th>用户名</th>
+                            <th>所属团队</th>
+                            <th>创建者</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for password in team_passwords %}
+                        <tr>
+                            <td><strong>{{ password.title }}</strong></td>
+                            <td>
+                                {% if password.website %}
+                                    <a href="{{ password.website }}" target="_blank" class="text-decoration-none">
+                                        <i class="bi bi-link-45deg"></i> {{ password.website|truncatechars:30 }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ password.username }}</code></td>
+                            <td>
+                                <span class="badge bg-info">
+                                    <i class="bi bi-people"></i> {{ password.team.name }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if password.owner == user %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ password.owner.username }}
+                                </span>
+                            </td>
+                            <td><small class="text-muted">{{ password.updated_at|date:"Y-m-d H:i" }}</small></td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'view_password' password.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> 查看
+                                    </a>
+                                    {% if password.owner == user or is_super_admin %}
+                                    <a href="{% url 'edit_password' password.id %}" class="btn btn-sm btn-outline-warning">
+                                        <i class="bi bi-pencil"></i> 编辑
+                                    </a>
+                                    <form method="post" action="{% url 'delete_password' password.id %}" class="d-inline" 
+                                          onsubmit="return confirm('确定删除这个团队密码条目吗？')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-people fs-1 text-muted"></i>
+                <p class="text-muted mt-2">暂无团队密码</p>
+                <p class="text-muted small">加入团队或创建团队来共享密码</p>
+                <a href="{% url 'team_list' %}" class="btn btn-success">管理团队</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

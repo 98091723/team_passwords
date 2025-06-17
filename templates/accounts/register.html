@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}创建用户{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">
+                    <i class="bi bi-person-plus"></i> 创建新用户
+                </h3>
+                <p class="text-muted">只有超级管理员可以创建新用户</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名 *</label>
+                                <input type="text" class="form-control" id="username" name="username" required 
+                                       placeholder="输入用户名">
+                                <div class="form-text">用户名用于登录系统</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">邮箱</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="user@example.com">
+                                <div class="form-text">可选，用于密码重置等功能</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码 *</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="password" name="password" required
+                                   placeholder="设置登录密码">
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()" 
+                                    title="显示/隐藏密码">
+                                <i class="bi bi-eye" id="password-icon"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="generatePassword()" 
+                                    title="生成强密码">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">建议使用强密码，包含大小写字母、数字和特殊字符</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> 创建用户
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 用户管理说明 -->
+        <div class="card mt-3">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> 用户管理说明</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="bi bi-check-circle text-success"></i> 只有超级管理员可以创建新用户</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 新创建的用户可以立即登录系统</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 用户可以创建团队、管理密码</li>
+                    <li><i class="bi bi-check-circle text-success"></i> 建议为新用户设置强密码</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePassword() {
+    const passwordField = document.getElementById('password');
+    const passwordIcon = document.getElementById('password-icon');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        passwordIcon.className = 'bi bi-eye-slash';
+    } else {
+        passwordField.type = 'password';
+        passwordIcon.className = 'bi bi-eye';
+    }
+}
+
+function generatePassword() {
+    const length = 16;
+    const includeSymbols = true;
+    
+    fetch(`{% url "generate_password" %}?length=${length}&symbols=${includeSymbols}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('password').value = data.password;
+            showAlert('强密码已生成！', 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('生成密码失败，请重试', 'danger');
+        });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %} 
