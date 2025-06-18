@@ -62,7 +62,7 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            if next_url:
+            if next_url and isinstance(next_url, str) and next_url.startswith('/'):
                 return redirect(next_url)
             else:
                 return redirect('dashboard')
