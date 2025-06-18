@@ -62,7 +62,10 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            return redirect(next_url or 'dashboard')
+            if next_url:
+                return redirect(next_url)
+            else:
+                return redirect('dashboard')
         else:
             messages.error(request, '用户名或密码错误')
     
