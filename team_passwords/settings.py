@@ -24,7 +24,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 使用环境变量或默认密钥（生产环境请修改）
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '98091723Lijq')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'me7v-gn)c#p%u8%d@)anoz2b2643$v*5ozrajz#k_*syff*eaq')
 
 DEBUG = True
 
