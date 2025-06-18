@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-团队密码管理系统 v1.0.0
+团队密码管理系统 v2.0.0
 Django管理脚本
 
 用于执行Django管理命令，如：
