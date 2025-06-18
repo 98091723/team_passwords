@@ -11,7 +11,7 @@ User = get_user_model()
 
 def setup_super_admin(request):
     """设置超级管理员（首次登录）"""
-    # 检查是否已有超级管理员
+    # 只允许数据库没有任何超级管理员时访问
     if User.objects.filter(is_super_admin=True).exists():
         return redirect('login')
     
@@ -50,7 +50,7 @@ def setup_super_admin(request):
 
 def user_login(request):
     """用户登录"""
-    # 检查是否需要设置超级管理员
+    # 只在没有超级管理员时跳转到setup页面
     if not User.objects.filter(is_super_admin=True).exists():
         return redirect('setup_super_admin')
     
@@ -62,6 +62,7 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
+            # 只允许next_url为/开头的路径
             if next_url and isinstance(next_url, str) and next_url.startswith('/'):
                 return redirect(next_url)
             else:
