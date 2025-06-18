@@ -122,3 +122,7 @@ X_FRAME_OPTIONS = 'DENY'
 SESSION_COOKIE_SECURE = False  # 开发环境设为False，生产环境设为True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 3600  # 1小时后过期
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://teampasswords-production.up.railway.app'
+]
