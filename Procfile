@@ -1,0 +1,1 @@
+web: python manage.py migrate && gunicorn team_passwords.wsgi --log-file - 

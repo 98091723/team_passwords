@@ -11,3 +11,4 @@ cryptography==41.0.7
 
 # 其他依赖
 requests==2.32.4
+gunicorn
