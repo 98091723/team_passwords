@@ -29,7 +29,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'me7v-gn)c#p%u8%d@)anoz2b2643$v
 DEBUG = True
 
 # 从环境变量读取ALLOWED_HOSTS，支持Railway部署
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost,teampasswords-production.up.railway.app').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
