@@ -238,30 +238,19 @@ def invite_member(request, team_id):
             messages.error(request, '您不是该团队成员')
             return redirect('team_list')
     if request.method == 'POST':
-        email = request.POST.get('email')
         expires_days = int(request.POST.get('expires_days', 3))
         code = get_random_string(32)
         expires_at = timezone.now() + timezone.timedelta(days=expires_days)
         invite = TeamInvite.objects.create(
             team=team,
             inviter=request.user,
-            email=email,
             code=code,
             expires_at=expires_at
         )
         invite_url = request.build_absolute_uri(
             reverse('accept_invite', args=[invite.code])
         )
-        if email:
-            send_mail(
-                subject=f"{team.name}团队邀请",
-                message=f"您被邀请加入团队：{team.name}\n点击链接加入：{invite_url}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-            )
-            messages.success(request, f'邀请已发送到 {email}')
-        else:
-            messages.success(request, f'邀请链接已生成：{invite_url}')
+        messages.success(request, f'邀请链接已生成：{invite_url}')
         return redirect('team_detail', team_id=team_id)
     return render(request, 'teams/invite_member.html', {'team': team})
 
