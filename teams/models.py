@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -36,3 +37,23 @@ class TeamMembership(models.Model):
         unique_together = ['user', 'team']
         verbose_name = '团队成员'
         verbose_name_plural = '团队成员'
+
+class TeamInvite(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='invites', verbose_name='团队')
+    inviter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invites', verbose_name='邀请人')
+    email = models.EmailField(blank=True, null=True, verbose_name='受邀邮箱')
+    code = models.CharField(max_length=64, unique=True, verbose_name='邀请码')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='邀请时间')
+    expires_at = models.DateTimeField(verbose_name='过期时间')
+    accepted = models.BooleanField(default=False, verbose_name='已接受')
+    accepted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='accepted_invites', verbose_name='受邀用户')
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"{self.team.name} 邀请({self.email or self.code})"
+
+    class Meta:
+        verbose_name = '团队邀请'
+        verbose_name_plural = '团队邀请'

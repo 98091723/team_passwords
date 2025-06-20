@@ -63,6 +63,15 @@ def add_password(request):
             if not team.members.filter(id=request.user.id).exists():
                 messages.error(request, '您不是该团队成员')
                 return redirect('dashboard')
+            # 检查团队成员角色，viewer禁止添加
+            try:
+                membership = TeamMembership.objects.get(team=team, user=request.user)
+                if membership.role == 'viewer':
+                    messages.error(request, '只读成员无法添加团队密码')
+                    return redirect('dashboard')
+            except TeamMembership.DoesNotExist:
+                messages.error(request, '您不是该团队成员')
+                return redirect('dashboard')
         
         # 生成盐值和加密密码
         salt = os.urandom(32)
@@ -97,23 +106,21 @@ def edit_password(request, password_id):
     # 检查权限
     can_edit = False
     is_super_admin = request.user.is_super_admin
-    
     if is_super_admin:
-        # 超级管理员可以编辑所有密码
         can_edit = True
     elif password_entry.team:
-        # 团队密码：检查是否为团队管理员或密码所有者
         try:
             membership = TeamMembership.objects.get(team=password_entry.team, user=request.user)
-            if membership.role == 'admin' or password_entry.owner == request.user:
+            if membership.role == 'admin':
                 can_edit = True
+            elif membership.role == 'member' and password_entry.owner == request.user:
+                can_edit = True
+            # viewer无权编辑
         except TeamMembership.DoesNotExist:
             pass
     else:
-        # 个人密码：只有所有者可以编辑
         if password_entry.owner == request.user:
             can_edit = True
-    
     if not can_edit:
         messages.error(request, '您没有权限编辑此密码')
         return redirect('dashboard')
@@ -246,8 +253,11 @@ def delete_password(request, password_id):
     elif password_entry.team:
         try:
             membership = TeamMembership.objects.get(team=password_entry.team, user=request.user)
-            if membership.role == 'admin' or password_entry.owner == request.user:
+            if membership.role == 'admin':
                 can_delete = True
+            elif membership.role == 'member' and password_entry.owner == request.user:
+                can_delete = True
+            # viewer无权删除
         except TeamMembership.DoesNotExist:
             pass
     else:

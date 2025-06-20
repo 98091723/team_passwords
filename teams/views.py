@@ -2,10 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from .models import Team, TeamMembership
+from .models import Team, TeamMembership, TeamInvite
 from passwords.models import PasswordEntry
 from logs.models import OperationLog
 from django.views.decorators.http import require_POST
+from django.utils import timezone
+from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
+from django.conf import settings
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -79,12 +84,12 @@ def team_detail(request, team_id):
 def add_member(request, team_id):
     """添加团队成员"""
     team = get_object_or_404(Team, id=team_id)
-    
     # 检查权限
+    is_owner = team.owner == request.user
     try:
         membership = TeamMembership.objects.get(team=team, user=request.user)
-        if membership.role != 'admin' and team.owner != request.user:
-            messages.error(request, '只有管理员可以添加成员')
+        if not (is_owner or membership.role == 'admin'):
+            messages.error(request, '只有团队所有者或管理员可以添加成员')
             OperationLog.objects.create(
                 user=request.user,
                 op_type='team',
@@ -95,16 +100,17 @@ def add_member(request, team_id):
             )
             return redirect('team_detail', team_id=team_id)
     except TeamMembership.DoesNotExist:
-        messages.error(request, '您不是该团队成员')
-        OperationLog.objects.create(
-            user=request.user,
-            op_type='team',
-            object_repr=f"{team.name} (ID:{team.id})",
-            detail='无权限添加成员',
-            ip=request.META.get('REMOTE_ADDR'),
-            result='失败',
-        )
-        return redirect('team_list')
+        if not is_owner:
+            messages.error(request, '您不是该团队成员')
+            OperationLog.objects.create(
+                user=request.user,
+                op_type='team',
+                object_repr=f"{team.name} (ID:{team.id})",
+                detail='无权限添加成员',
+                ip=request.META.get('REMOTE_ADDR'),
+                result='失败',
+            )
+            return redirect('team_list')
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -157,10 +163,11 @@ def add_member(request, team_id):
 @require_POST
 def remove_member(request, team_id, user_id):
     team = get_object_or_404(Team, id=team_id)
+    is_owner = team.owner == request.user
     try:
         membership = TeamMembership.objects.get(team=team, user=request.user)
-        if membership.role != 'admin' and team.owner != request.user:
-            messages.error(request, '只有管理员可以移除成员')
+        if not (is_owner or membership.role == 'admin'):
+            messages.error(request, '只有团队所有者或管理员可以移除成员')
             OperationLog.objects.create(
                 user=request.user,
                 op_type='team',
@@ -171,16 +178,17 @@ def remove_member(request, team_id, user_id):
             )
             return redirect('team_detail', team_id=team_id)
     except TeamMembership.DoesNotExist:
-        messages.error(request, '您不是该团队成员')
-        OperationLog.objects.create(
-            user=request.user,
-            op_type='team',
-            object_repr=f"{team.name} (ID:{team.id})",
-            detail='无权限移除成员',
-            ip=request.META.get('REMOTE_ADDR'),
-            result='失败',
-        )
-        return redirect('team_list')
+        if not is_owner:
+            messages.error(request, '您不是该团队成员')
+            OperationLog.objects.create(
+                user=request.user,
+                op_type='team',
+                object_repr=f"{team.name} (ID:{team.id})",
+                detail='无权限移除成员',
+                ip=request.META.get('REMOTE_ADDR'),
+                result='失败',
+            )
+            return redirect('team_list')
     try:
         user = User.objects.get(id=user_id)
         if user == team.owner:
@@ -215,3 +223,65 @@ def remove_member(request, team_id, user_id):
             result='失败',
         )
     return redirect('team_detail', team_id=team_id)
+
+@login_required
+def invite_member(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    is_owner = team.owner == request.user
+    try:
+        membership = TeamMembership.objects.get(team=team, user=request.user)
+        if not (is_owner or membership.role == 'admin'):
+            messages.error(request, '只有团队所有者或管理员可以邀请成员')
+            return redirect('team_detail', team_id=team_id)
+    except TeamMembership.DoesNotExist:
+        if not is_owner:
+            messages.error(request, '您不是该团队成员')
+            return redirect('team_list')
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        expires_days = int(request.POST.get('expires_days', 3))
+        code = get_random_string(32)
+        expires_at = timezone.now() + timezone.timedelta(days=expires_days)
+        invite = TeamInvite.objects.create(
+            team=team,
+            inviter=request.user,
+            email=email,
+            code=code,
+            expires_at=expires_at
+        )
+        invite_url = request.build_absolute_uri(
+            reverse('accept_invite', args=[invite.code])
+        )
+        if email:
+            send_mail(
+                subject=f"{team.name}团队邀请",
+                message=f"您被邀请加入团队：{team.name}\n点击链接加入：{invite_url}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+            )
+            messages.success(request, f'邀请已发送到 {email}')
+        else:
+            messages.success(request, f'邀请链接已生成：{invite_url}')
+        return redirect('team_detail', team_id=team_id)
+    return render(request, 'teams/invite_member.html', {'team': team})
+
+def accept_invite(request, code):
+    invite = get_object_or_404(TeamInvite, code=code)
+    if invite.is_expired() or invite.accepted:
+        return render(request, 'teams/invite_expired.html', {'invite': invite})
+    if request.user.is_authenticated:
+        # 已登录，直接加入团队
+        TeamMembership.objects.get_or_create(
+            team=invite.team,
+            user=request.user,
+            defaults={'role': 'member'}
+        )
+        invite.accepted = True
+        invite.accepted_by = request.user
+        invite.save()
+        messages.success(request, f'已加入团队 {invite.team.name}')
+        return redirect('team_detail', team_id=invite.team.id)
+    else:
+        # 未登录，跳转到登录/注册，登录后自动加入
+        request.session['pending_invite'] = code
+        return redirect('login')

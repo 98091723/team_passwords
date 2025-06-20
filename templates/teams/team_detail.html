@@ -10,6 +10,9 @@
         <a href="{% url 'add_member' team.id %}" class="btn btn-success me-2">
             <i class="bi bi-person-plus"></i> 添加成员
         </a>
+        <a href="{% url 'invite_member' team.id %}" class="btn btn-outline-info me-2">
+            <i class="bi bi-link-45deg"></i> 邀请成员
+        </a>
         {% endif %}
         <a href="{% url 'team_list' %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> 返回团队列表
@@ -119,7 +122,7 @@
                             <td>
                                 {% if is_admin and membership.user != team.owner %}
                                 <button class="btn btn-sm btn-outline-danger" 
-                                        onclick="removeMember('{{ membership.user.username }}', {{ membership.user.id }})">
+                                        onclick="removeMember('{{ membership.user.username|escapejs }}', {{ membership.user.id }})">
                                     <i class="bi bi-person-x"></i> 移除
                                 </button>
                                 {% endif %}
@@ -185,7 +188,7 @@
                                     <a href="{% url 'view_password' password.id %}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> 查看
                                     </a>
-                                    {% if password.owner == user or is_admin %}
+                                    {% if is_admin or password.owner == user and user_role != 'viewer' %}
                                     <form method="post" action="{% url 'delete_password' password.id %}" class="d-inline" 
                                           onsubmit="return confirm('确定删除这个团队密码条目吗？')">
                                         {% csrf_token %}

@@ -131,7 +131,7 @@
                                     <a href="{% url 'view_password' password.id %}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> 查看
                                     </a>
-                                    {% if password.owner == user or is_super_admin %}
+                                    {% if is_super_admin or password.owner == user or user_role == 'admin' and password.team and user_role != 'viewer' %}
                                     <a href="{% url 'edit_password' password.id %}" class="btn btn-sm btn-outline-warning">
                                         <i class="bi bi-pencil"></i> 编辑
                                     </a>
@@ -210,7 +210,7 @@
                                     <a href="{% url 'view_password' password.id %}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye"></i> 查看
                                     </a>
-                                    {% if password.owner == user or is_super_admin %}
+                                    {% if is_super_admin or password.owner == user or user_role == 'admin' and password.team and user_role != 'viewer' %}
                                     <a href="{% url 'edit_password' password.id %}" class="btn btn-sm btn-outline-warning">
                                         <i class="bi bi-pencil"></i> 编辑
                                     </a>
