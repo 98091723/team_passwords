@@ -28,7 +28,7 @@
                 {% for log in page_obj %}
                 <tr>
                     <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
-                    <td>{{ log.user.username if log.user else '未知' }}</td>
+                    <td>{% if log.user %}{{ log.user.username }}{% else %}未知{% endif %}</td>
                     <td>{{ log.get_op_type_display }}</td>
                     <td>{{ log.object_repr }}</td>
                     <td>{{ log.detail|default:'-' }}</td>
