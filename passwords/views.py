@@ -8,6 +8,8 @@ from teams.models import Team, TeamMembership
 from utils.crypto import CryptoManager
 import os
 import json
+import re
+from logs.models import OperationLog
 
 @login_required
 def password_list(request):
@@ -124,9 +126,21 @@ def edit_password(request, password_id):
         notes = request.POST.get('notes', '')
         team_id = request.POST.get('team')
         
-        # 验证必填字段
-        if not all([title, username, password]):
-            messages.error(request, '请填写所有必填字段')
+        # 强密码校验
+        def is_strong_password(pw):
+            if len(pw) < 8:
+                return False
+            if not re.search(r'[A-Z]', pw):
+                return False
+            if not re.search(r'[a-z]', pw):
+                return False
+            if not re.search(r'\d', pw):
+                return False
+            if not re.search(r'[^A-Za-z0-9]', pw):
+                return False
+            return True
+        if not is_strong_password(password):
+            messages.error(request, '密码必须至少8位，包含大写字母、小写字母、数字和特殊字符')
             return render(request, 'passwords/edit_password.html', {
                 'password_entry': password_entry,
                 'teams': Team.objects.filter(members=request.user) if not is_super_admin else Team.objects.all(),
@@ -180,31 +194,39 @@ def edit_password(request, password_id):
 def view_password(request, password_id):
     """查看密码详情"""
     password_entry = get_object_or_404(PasswordEntry, id=password_id)
-    
-    # 检查权限
     can_view = False
     is_super_admin = request.user.is_super_admin
-    
     if is_super_admin:
-        # 超级管理员可以查看所有密码
         can_view = True
     elif password_entry.team:
-        # 团队密码：检查是否为团队成员
         if password_entry.team.members.filter(id=request.user.id).exists():
             can_view = True
     else:
-        # 个人密码：只有所有者可以查看
         if password_entry.owner == request.user:
             can_view = True
-    
+    result = '失败'
     if not can_view:
         messages.error(request, '您没有权限查看此密码')
+        OperationLog.objects.create(
+            user=request.user,
+            op_type='view',
+            object_repr=f"{password_entry.title} (ID:{password_entry.id})",
+            detail='无权限查看',
+            ip=request.META.get('REMOTE_ADDR'),
+            result='失败',
+        )
         return redirect('dashboard')
-    
     # 解密密码
     key = CryptoManager.derive_key(password_entry.owner.username, password_entry.salt)
     decrypted_password = CryptoManager.decrypt_data(password_entry.encrypted_password, key)
-    
+    OperationLog.objects.create(
+        user=request.user,
+        op_type='view',
+        object_repr=f"{password_entry.title} (ID:{password_entry.id})",
+        detail='查看密码',
+        ip=request.META.get('REMOTE_ADDR'),
+        result='成功',
+    )
     context = {
         'password_entry': password_entry,
         'decrypted_password': decrypted_password,
@@ -217,16 +239,11 @@ def view_password(request, password_id):
 def delete_password(request, password_id):
     """删除密码"""
     password_entry = get_object_or_404(PasswordEntry, id=password_id)
-    
-    # 检查权限
     can_delete = False
     is_super_admin = request.user.is_super_admin
-    
     if is_super_admin:
-        # 超级管理员可以删除所有密码
         can_delete = True
     elif password_entry.team:
-        # 团队密码：检查是否为团队管理员或密码所有者
         try:
             membership = TeamMembership.objects.get(team=password_entry.team, user=request.user)
             if membership.role == 'admin' or password_entry.owner == request.user:
@@ -234,16 +251,36 @@ def delete_password(request, password_id):
         except TeamMembership.DoesNotExist:
             pass
     else:
-        # 个人密码：只有所有者可以删除
         if password_entry.owner == request.user:
             can_delete = True
-    
+    result = '失败'
     if not can_delete:
         messages.error(request, '您没有权限删除此密码')
+        OperationLog.objects.create(
+            user=request.user,
+            op_type='delete',
+            object_repr=f"{password_entry.title} (ID:{password_entry.id})",
+            detail='无权限删除',
+            ip=request.META.get('REMOTE_ADDR'),
+            result='失败',
+        )
         return redirect('dashboard')
-    
-    password_entry.delete()
-    messages.success(request, '密码删除成功')
+    object_desc = f"{password_entry.title} (ID:{password_entry.id})"
+    try:
+        password_entry.delete()
+        messages.success(request, '密码删除成功')
+        result = '成功'
+    except Exception as e:
+        messages.error(request, '密码删除失败')
+        result = f'失败:{str(e)}'
+    OperationLog.objects.create(
+        user=request.user,
+        op_type='delete',
+        object_repr=object_desc,
+        detail='删除密码',
+        ip=request.META.get('REMOTE_ADDR'),
+        result=result,
+    )
     return redirect('dashboard')
 
 @login_required

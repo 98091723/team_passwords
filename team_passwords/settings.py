@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'accounts',
     'passwords',
     'teams',
+    'logs',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}操作日志{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-clipboard-data"></i> 操作日志</h2>
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-auto">
+            <input type="text" name="q" class="form-control" placeholder="搜索对象/详情" value="{{ query }}">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">搜索</button>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>时间</th>
+                    <th>操作人</th>
+                    <th>类型</th>
+                    <th>对象</th>
+                    <th>详情</th>
+                    <th>IP</th>
+                    <th>结果</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in page_obj %}
+                <tr>
+                    <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td>{{ log.user.username if log.user else '未知' }}</td>
+                    <td>{{ log.get_op_type_display }}</td>
+                    <td>{{ log.object_repr }}</td>
+                    <td>{{ log.detail|default:'-' }}</td>
+                    <td>{{ log.ip|default:'-' }}</td>
+                    <td>{{ log.result }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted">暂无日志</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?q={{ query }}&page=1">首页</a></li>
+            <li class="page-item"><a class="page-link" href="?q={{ query }}&page={{ page_obj.previous_page_number }}">上一页</a></li>
+            {% endif %}
+            <li class="page-item disabled"><span class="page-link">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 页</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?q={{ query }}&page={{ page_obj.next_page_number }}">下一页</a></li>
+            <li class="page-item"><a class="page-link" href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}">末页</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %} 

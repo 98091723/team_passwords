@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth import get_user_model
 from utils.crypto import CryptoManager
 import os
+import re
 
 User = get_user_model()
 
@@ -83,6 +84,23 @@ def register_user(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         email = request.POST.get('email')
+        
+        # 强密码校验
+        def is_strong_password(pw):
+            if len(pw) < 8:
+                return False
+            if not re.search(r'[A-Z]', pw):
+                return False
+            if not re.search(r'[a-z]', pw):
+                return False
+            if not re.search(r'\d', pw):
+                return False
+            if not re.search(r'[^A-Za-z0-9]', pw):
+                return False
+            return True
+        if not is_strong_password(password):
+            messages.error(request, '密码必须至少8位，包含大写字母、小写字母、数字和特殊字符')
+            return render(request, 'accounts/register.html')
         
         if User.objects.filter(username=username).exists():
             messages.error(request, '用户名已存在')

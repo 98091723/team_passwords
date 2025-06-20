@@ -10,4 +10,5 @@ urlpatterns = [
     path('teams/', include('teams.urls')),
     path('passwords/', include('passwords.urls')),
     path('dashboard/', password_list, name='dashboard'),
+    path('logs/', include('logs.urls')),
 ]

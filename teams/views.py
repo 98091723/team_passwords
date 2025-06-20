@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from .models import Team, TeamMembership
 from passwords.models import PasswordEntry
+from logs.models import OperationLog
+from django.views.decorators.http import require_POST
 
 User = get_user_model()
 
@@ -83,9 +85,25 @@ def add_member(request, team_id):
         membership = TeamMembership.objects.get(team=team, user=request.user)
         if membership.role != 'admin' and team.owner != request.user:
             messages.error(request, '只有管理员可以添加成员')
+            OperationLog.objects.create(
+                user=request.user,
+                op_type='team',
+                object_repr=f"{team.name} (ID:{team.id})",
+                detail='无权限添加成员',
+                ip=request.META.get('REMOTE_ADDR'),
+                result='失败',
+            )
             return redirect('team_detail', team_id=team_id)
     except TeamMembership.DoesNotExist:
         messages.error(request, '您不是该团队成员')
+        OperationLog.objects.create(
+            user=request.user,
+            op_type='team',
+            object_repr=f"{team.name} (ID:{team.id})",
+            detail='无权限添加成员',
+            ip=request.META.get('REMOTE_ADDR'),
+            result='失败',
+        )
         return redirect('team_list')
     
     if request.method == 'POST':
@@ -96,6 +114,14 @@ def add_member(request, team_id):
             user = User.objects.get(username=username)
             if TeamMembership.objects.filter(team=team, user=user).exists():
                 messages.error(request, '用户已是团队成员')
+                OperationLog.objects.create(
+                    user=request.user,
+                    op_type='team',
+                    object_repr=f"{team.name} (ID:{team.id})",
+                    detail=f'添加成员失败：{username}已是团队成员',
+                    ip=request.META.get('REMOTE_ADDR'),
+                    result='失败',
+                )
             else:
                 TeamMembership.objects.create(
                     team=team,
@@ -103,10 +129,89 @@ def add_member(request, team_id):
                     role=role
                 )
                 messages.success(request, f'用户 {username} 已添加到团队')
+                OperationLog.objects.create(
+                    user=request.user,
+                    op_type='team',
+                    object_repr=f"{team.name} (ID:{team.id})",
+                    detail=f'添加成员：{username}，角色：{role}',
+                    ip=request.META.get('REMOTE_ADDR'),
+                    result='成功',
+                )
         except User.DoesNotExist:
             messages.error(request, '用户不存在')
+            OperationLog.objects.create(
+                user=request.user,
+                op_type='team',
+                object_repr=f"{team.name} (ID:{team.id})",
+                detail=f'添加成员失败：{username}不存在',
+                ip=request.META.get('REMOTE_ADDR'),
+                result='失败',
+            )
         
         return redirect('team_detail', team_id=team_id)
     
     context = {'team': team}
     return render(request, 'teams/add_member.html', context)
+
+@login_required
+@require_POST
+def remove_member(request, team_id, user_id):
+    team = get_object_or_404(Team, id=team_id)
+    try:
+        membership = TeamMembership.objects.get(team=team, user=request.user)
+        if membership.role != 'admin' and team.owner != request.user:
+            messages.error(request, '只有管理员可以移除成员')
+            OperationLog.objects.create(
+                user=request.user,
+                op_type='team',
+                object_repr=f"{team.name} (ID:{team.id})",
+                detail='无权限移除成员',
+                ip=request.META.get('REMOTE_ADDR'),
+                result='失败',
+            )
+            return redirect('team_detail', team_id=team_id)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, '您不是该团队成员')
+        OperationLog.objects.create(
+            user=request.user,
+            op_type='team',
+            object_repr=f"{team.name} (ID:{team.id})",
+            detail='无权限移除成员',
+            ip=request.META.get('REMOTE_ADDR'),
+            result='失败',
+        )
+        return redirect('team_list')
+    try:
+        user = User.objects.get(id=user_id)
+        if user == team.owner:
+            messages.error(request, '不能移除团队所有者')
+            OperationLog.objects.create(
+                user=request.user,
+                op_type='team',
+                object_repr=f"{team.name} (ID:{team.id})",
+                detail='尝试移除所有者',
+                ip=request.META.get('REMOTE_ADDR'),
+                result='失败',
+            )
+        else:
+            TeamMembership.objects.filter(team=team, user=user).delete()
+            messages.success(request, f'成员 {user.username} 已被移除')
+            OperationLog.objects.create(
+                user=request.user,
+                op_type='team',
+                object_repr=f"{team.name} (ID:{team.id})",
+                detail=f'移除成员：{user.username}',
+                ip=request.META.get('REMOTE_ADDR'),
+                result='成功',
+            )
+    except User.DoesNotExist:
+        messages.error(request, '用户不存在')
+        OperationLog.objects.create(
+            user=request.user,
+            op_type='team',
+            object_repr=f"{team.name} (ID:{team.id})",
+            detail='移除成员失败：用户不存在',
+            ip=request.META.get('REMOTE_ADDR'),
+            result='失败',
+        )
+    return redirect('team_detail', team_id=team_id)
